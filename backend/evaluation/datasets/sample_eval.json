@@ -1,0 +1,12 @@
+[
+    {
+        "question": "What is the total revenue reported in 2023?",
+        "expected_keywords": ["revenue", "2023", "billion", "million"],
+        "expected_element_types": ["Text", "Table"]
+    },
+    {
+        "question": "Who is the CEO of the company?",
+        "expected_keywords": ["CEO", "chief executive officer"],
+        "expected_element_types": ["Text"]
+    }
+]
