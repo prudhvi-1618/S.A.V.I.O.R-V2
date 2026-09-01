@@ -9,6 +9,16 @@ from app.services.retrieval.retrieval_trace import RetrievalTrace
 
 client = TestClient(app)
 
+def test_cors_allows_github_dev_origin():
+    response = client.get(
+        "/health",
+        headers={"Origin": "https://bookish-sniffle-6699grqw6r92rx9x-5173.app.github.dev"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "https://bookish-sniffle-6699grqw6r92rx9x-5173.app.github.dev"
+    assert response.headers["access-control-allow-credentials"] == "true"
+
 @patch("app.api.v1.chat.ChatService.stream_answer")
 def test_stream_chat_endpoint(mock_stream):
     # Mock the generator

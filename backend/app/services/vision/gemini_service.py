@@ -1,10 +1,14 @@
-import google.generativeai as genai
 import json
 from dataclasses import dataclass
 from typing import List
+from google import genai
+from google.genai import types
 from app.core.config import settings
 
-genai.configure(api_key=settings.GEMINI_API_KEY)
+
+
+def get_client() -> genai.Client:
+    return genai.Client(api_key=settings.GEMINI_API_KEY)
 
 @dataclass
 class ImageDescription:
@@ -33,8 +37,8 @@ class GeminiService:
     @staticmethod
     def describe_image(image_path: str) -> ImageDescription:
         try:
-            model = genai.GenerativeModel(settings.VISION_MODEL)
-            sample_file = genai.upload_file(path=image_path)
+            client = get_client()
+            sample_file = client.files.upload(file=image_path)
 
             prompt = """
 Analyze this image extracted from a PDF document and provide:
@@ -56,7 +60,10 @@ Respond in this exact JSON format:
   "relationships": ["...", "..."]
 }
 """
-            response = model.generate_content([sample_file, prompt])
+            response = client.models.generate_content(
+                model=settings.VISION_MODEL,
+                contents=[sample_file, prompt],
+            )
             clean_text = response.text.strip()
             if clean_text.startswith("```json"):
                 clean_text = clean_text[7:]
@@ -86,12 +93,13 @@ Respond in this exact JSON format:
     @staticmethod
     def generate_embedding(text: str) -> List[float]:
         try:
-            result = genai.embed_content(
+            client = get_client()
+            result = client.models.embed_content(
                 model=settings.EMBEDDING_MODEL,
-                content=text,
-                task_type="retrieval_document"
+                contents=text,
+                config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT"),
             )
-            return result["embedding"]
+            return list(result.embeddings[0].values)
         except Exception as e:
             print(f"Error generating embedding: {e}")
             return [0.0] * settings.EMBEDDING_DIMENSION
@@ -99,12 +107,13 @@ Respond in this exact JSON format:
     @staticmethod
     def generate_query_embedding(text: str) -> List[float]:
         try:
-            result = genai.embed_content(
+            client = get_client()
+            result = client.models.embed_content(
                 model=settings.EMBEDDING_MODEL,
-                content=text,
-                task_type="retrieval_query"
+                contents=text,
+                config=types.EmbedContentConfig(task_type="RETRIEVAL_QUERY"),
             )
-            return result["embedding"]
+            return list(result.embeddings[0].values)
         except Exception as e:
             print(f"Error generating query embedding: {e}")
             return [0.0] * settings.EMBEDDING_DIMENSION
@@ -115,8 +124,6 @@ Respond in this exact JSON format:
         context: str,
         conversation_history: list[dict] | None = None,
     ):
-        model = genai.GenerativeModel(settings.CHAT_MODEL)
-        
         system_prompt = f"""You are S.A.V.I.O.R, an AI assistant that answers questions about an uploaded PDF document.
 
 Your answers must be grounded only in the document context provided below.
@@ -141,7 +148,12 @@ DOCUMENT CONTEXT:
             for msg in conversation_history:
                 # Gemini expects role to be 'user' or 'model'
                 role = "model" if msg["role"] == "assistant" else "user"
-                gemini_history.append({"role": role, "parts": [msg["content"]]})
+                gemini_history.append(
+                    types.Content(
+                        role=role,
+                        parts=[types.Part.from_text(text=msg["content"])],
+                    )
+                )
                 
         # To strictly enforce the system prompt across the chat, 
         # it is often best to include it as a developer instruction or the first message.
@@ -152,9 +164,12 @@ DOCUMENT CONTEXT:
         full_question = f"{system_prompt}\n\nUSER QUESTION:\n{question}"
 
         try:
-            chat = model.start_chat(history=gemini_history)
-            response = chat.send_message(full_question, stream=True)
-            for chunk in response:
+            client = get_client()
+            chat = client.chats.create(
+                model=settings.CHAT_MODEL,
+                history=gemini_history,
+            )
+            for chunk in chat.send_message_stream(message=full_question):
                 if chunk.text:
                     yield chunk.text
         except Exception as e:

@@ -14,7 +14,7 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({ element, onC
   useEffect(() => {
     if (!element) return;
     setLoadingChunk(true);
-    fetch(`http://localhost:8000/api/v1/processing/mock-doc-123/elements/${element.element_id}/chunk`)
+    fetch(`/api/v1/processing/mock-doc-123/elements/${element.element_id}/chunk`)
       .then(res => {
         if (!res.ok) throw new Error('Not found');
         return res.json();

@@ -11,14 +11,33 @@ class UnstructuredService:
         # Basic check to prevent unstructured from failing immediately if the file is missing during mock tests
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
-            
-        raw_elements = partition_pdf(
-            filename=file_path,
-            strategy="hi_res",
-            infer_table_structure=True,
-            extract_images_in_pdf=True,
-            include_page_breaks=True
-        )
+        
+        # Try hi_res with OCR first; fall back to fast if OCR is unavailable
+        strategies = ["hi_res", "fast"]
+        raw_elements = None
+        last_error = None
+        
+        for strategy in strategies:
+            try:
+                raw_elements = partition_pdf(
+                    filename=file_path,
+                    strategy=strategy,
+                    infer_table_structure=True,
+                    extract_images_in_pdf=True,
+                    include_page_breaks=True
+                )
+                break  # Success, no need to try other strategies
+            except Exception as e:
+                last_error = e
+                if strategy == "hi_res":
+                    # Try next strategy
+                    continue
+                else:
+                    # Last strategy failed, raise the error
+                    raise RuntimeError(f"Extraction failed with all strategies. Last error: {str(e)}") from e
+        
+        if raw_elements is None:
+            raise RuntimeError(f"Extraction failed: {str(last_error)}")
 
         extracted_elements = []
         for raw in raw_elements:

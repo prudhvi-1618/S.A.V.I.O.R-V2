@@ -38,8 +38,6 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
     totalPages,
     scale,
     goToPage,
-    nextPage,
-    prevPage,
     setScale,
     setTotalPages
   } = usePdfNavigation(1.0);

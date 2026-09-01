@@ -12,7 +12,7 @@ interface DocumentPageProps {
 }
 
 export const DocumentPage: React.FC<DocumentPageProps> = ({ documentId }) => {
-  const pdfUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/documents/${documentId}/file`;
+  const pdfUrl = `${import.meta.env.VITE_API_URL || ''}/api/v1/documents/${documentId}/file`;
 
   
   const { 

@@ -15,9 +15,7 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
   totalChunks,
   processingImage
 }) => {
-  const isChunking = totalChunks > 0 && embeddedCount === 0;
   const isEmbedding = embeddedCount > 0 && embeddedCount < totalChunks;
-  const isCompleted = status === 'completed';
 
   const steps = [
     { id: 'uploaded', label: 'PDF Uploaded' },

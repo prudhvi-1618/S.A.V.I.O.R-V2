@@ -25,7 +25,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ documentId, onSour
   useEffect(() => {
     if (!isRetrieving && isStreaming) {
       // Just started streaming answer, meaning retrieval is done
-      fetch(`http://localhost:8000/api/v1/chat/${documentId}/trace`)
+      fetch(`/api/v1/chat/${documentId}/trace`)
         .then(res => res.ok ? res.json() : null)
         .then(data => {
             if (data) setLatestTrace(data);

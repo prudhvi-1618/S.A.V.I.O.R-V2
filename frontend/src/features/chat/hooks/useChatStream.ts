@@ -33,7 +33,7 @@ export function useChatStream(documentId: string | null) {
     abortControllerRef.current = new AbortController();
 
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/chat/${documentId}/stream`, {
+      const response = await fetch(`/api/v1/chat/${documentId}/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question }),
@@ -139,7 +139,7 @@ export function useChatStream(documentId: string | null) {
     setError(null);
     
     try {
-      await fetch(`http://localhost:8000/api/v1/chat/${documentId}/history`, {
+      await fetch(`/api/v1/chat/${documentId}/history`, {
         method: 'DELETE',
       });
     } catch (e) {

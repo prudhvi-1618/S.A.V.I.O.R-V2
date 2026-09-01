@@ -1,5 +1,3 @@
-import type { ExtractedElement } from '../../extraction/types/extraction.types';
-
 export interface PageDimensions {
   width: number;
   height: number;

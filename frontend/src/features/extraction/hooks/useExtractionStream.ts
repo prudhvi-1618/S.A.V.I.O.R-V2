@@ -29,7 +29,7 @@ export const useExtractionStream = (documentId: string | undefined, autoStart: b
     clientRef.current = client;
 
     client.connect(
-      `http://localhost:8000/api/v1/processing/${documentId}/start`,
+      `/api/v1/processing/${documentId}/start`,
       (event, data) => {
         if (event === 'element_extracted') {
           setStatus('processing');

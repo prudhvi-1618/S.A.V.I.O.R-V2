@@ -1,15 +1,32 @@
+import os
+import uuid
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import uuid
-from contextvars import ContextVar
-import traceback
-import logging
 
 from app.api.v1 import processing, documents, chat
 from app.core.logging import setup_logging, request_id_ctx_var, get_logger
 from app.core.exceptions import SaviorException, VectorDatabaseError
 from app.services.embeddings.qdrant_service import QdrantService
+
+
+def get_cors_origins() -> list[str]:
+    configured = os.getenv("CORS_ALLOWED_ORIGINS", "")
+    defaults = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://localhost:4173",
+        "https://localhost:5173",
+        "https://127.0.0.1:5173",
+        "https://bookish-sniffle-6699grqw6r92rx9x-5173.app.github.dev"
+    ]
+    origins = [origin.strip() for origin in configured.split(",") if origin.strip()]
+    return list(dict.fromkeys(defaults + origins))
+
+
+CORS_ALLOW_ORIGIN_REGEX = os.getenv("CORS_ALLOWED_ORIGIN_REGEX", r"https://.*\.app\.github\.dev")
 
 # Set up structured logging
 setup_logging()
@@ -20,6 +37,7 @@ app = FastAPI(title="S.A.V.I.O.R API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_origin_regex=CORS_ALLOW_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -1,4 +1,3 @@
-import React from 'react'
 import { DocumentPage } from './pages/DocumentPage/DocumentPage'
 import { HomePage } from './pages/HomePage/HomePage'
 import { useDocumentStore } from './store/document.store'

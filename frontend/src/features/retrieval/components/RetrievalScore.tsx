@@ -5,7 +5,6 @@ interface RetrievalScoreProps {
 }
 
 export const RetrievalScore: React.FC<RetrievalScoreProps> = ({ score }) => {
-  const percentage = Math.round(score * 100);
   const bars = 20;
   const filledBars = Math.round(score * bars);
 
