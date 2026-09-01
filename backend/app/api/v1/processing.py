@@ -12,8 +12,19 @@ router = APIRouter(prefix="/processing", tags=["processing"])
 @router.post("/{document_id}/start")
 async def start_processing(request: Request, document_id: str):
     doc = DocumentRepository.get(document_id)
+    
+    # Try to load state if not in memory
+    if not doc:
+        from app.state.state_manager import StateManager
+        if StateManager.load_state(document_id):
+            doc = DocumentRepository.get(document_id)
+            
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
+    
+    # If the document is already processed, bypass the pipeline
+    if doc.status == "completed":
+        return EventSourceResponse(ElementProcessor.replay_document_state(document_id))
     
     file_path = f"data/uploads/{document_id}.pdf"
     

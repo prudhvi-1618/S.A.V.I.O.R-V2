@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useParams, Navigate } from 'react-router-dom';
 import { useExtractionStream } from '../../features/extraction/hooks/useExtractionStream';
 import { ExtractionPanel } from '../../features/extraction/components/ExtractionPanel';
 import { ElementInspector } from '../../features/extraction/components/ElementInspector';
@@ -7,11 +8,13 @@ import { PdfViewer } from '../../features/pdf-viewer/components/PdfViewer';
 import { useElementSelection } from '../../features/pdf-viewer/hooks/useElementSelection';
 import type { OverlayElement } from '../../features/pdf-viewer/types/pdf.types';
 
-interface DocumentPageProps {
-  documentId: string;
-}
+export const DocumentPage: React.FC = () => {
+  const { documentId } = useParams<{ documentId: string }>();
 
-export const DocumentPage: React.FC<DocumentPageProps> = ({ documentId }) => {
+  if (!documentId) {
+    return <Navigate to="/" />;
+  }
+
   const pdfUrl = `${import.meta.env.VITE_API_URL || ''}/api/v1/documents/${documentId}/file`;
 
   

@@ -63,6 +63,9 @@ class ElementProcessor:
                 "status": "completed",
             })
 
+            from app.state.state_manager import StateManager
+            StateManager.save_state(document_id)
+
         except Exception as e:
             DocumentRepository.update(document_id, {
                 "status": "failed",
@@ -74,3 +77,45 @@ class ElementProcessor:
                     "error": str(e)
                 }
             )
+
+    @staticmethod
+    async def replay_document_state(document_id: str):
+        """Yields events from memory/cache for already processed documents."""
+        # 1. Elements
+        elements = ElementRepository.get_by_document(document_id)
+        for el in elements:
+            yield SSEEventBuilder.format_event(
+                "element_extracted",
+                {
+                    "element_id": el.element_id,
+                    "element_type": el.element_type,
+                    "text": el.text,
+                    "page_number": el.page_number
+                }
+            )
+            await asyncio.sleep(0.005) # Prevent overloading client
+        
+        yield SSEEventBuilder.format_event(
+            "processing_complete",
+            {
+                "document_id": document_id,
+                "total_elements": len(elements),
+                "pages_processed": len(set(el.page_number for el in elements))
+            }
+        )
+
+        # 2. Chunks & Embeddings
+        yield SSEEventBuilder.format_event("chunking_started", {"document_id": document_id})
+        yield SSEEventBuilder.format_event("chunking_complete", {"total_chunks": state.total_chunks})
+        
+        yield SSEEventBuilder.format_event("embedding_started", {"total_chunks": state.total_chunks})
+        
+        for chunk in state.chunks:
+            if chunk.embedded:
+                yield SSEEventBuilder.format_event("chunk_embedded", {
+                    "chunk_id": chunk.chunk_id,
+                    "embedded_count": state.embedded_chunks,
+                    "total_chunks": state.total_chunks
+                })
+        
+        yield SSEEventBuilder.format_event("embedding_complete", {"document_id": document_id})

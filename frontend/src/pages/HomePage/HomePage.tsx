@@ -1,11 +1,14 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DocumentUpload } from '../../features/document/components/DocumentUpload';
 
-interface HomePageProps {
-  onUploadSuccess: (documentId: string) => void;
-}
+export const HomePage: React.FC = () => {
+  const navigate = useNavigate();
 
-export const HomePage: React.FC<HomePageProps> = ({ onUploadSuccess }) => {
+  const handleUploadSuccess = (documentId: string) => {
+    navigate(`/document/${documentId}`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white border-b py-4 px-8">
@@ -28,7 +31,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onUploadSuccess }) => {
         </div>
 
         <div className="w-full">
-          <DocumentUpload onUploadSuccess={onUploadSuccess} />
+          <DocumentUpload onUploadSuccess={handleUploadSuccess} />
         </div>
       </main>
     </div>
