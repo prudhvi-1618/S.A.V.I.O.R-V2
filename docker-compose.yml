@@ -20,6 +20,7 @@ services:
       - "8000:8000"
     environment:
       - QDRANT_URL=http://qdrant:6333
+      - HF_TOKEN=${HF_TOKEN:-}
     depends_on:
       - qdrant
 

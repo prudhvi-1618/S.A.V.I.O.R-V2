@@ -18,7 +18,7 @@ async def stream_chat(document_id: str, request: ChatRequest):
     if not request.question.strip():
         raise HTTPException(status_code=422, detail="Question cannot be empty.")
         
-    doc = doc_repo.get_document(document_id)
+    doc = doc_repo.get(document_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
 
@@ -34,7 +34,7 @@ async def stream_chat(document_id: str, request: ChatRequest):
 
 @router.get("/{document_id}/trace")
 async def get_retrieval_trace(document_id: str):
-    doc = doc_repo.get_document(document_id)
+    doc = doc_repo.get(document_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
         
@@ -46,7 +46,7 @@ async def get_retrieval_trace(document_id: str):
 
 @router.delete("/{document_id}/history")
 async def clear_chat_history(document_id: str):
-    doc = doc_repo.get_document(document_id)
+    doc = doc_repo.get(document_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
         

@@ -14,9 +14,11 @@ export const useExtractionStream = (documentId: string | undefined, autoStart: b
   const [processingImage, setProcessingImage] = useState<string | null>(null);
 
   const clientRef = useRef<SSEClient | null>(null);
+  const startedDocumentRef = useRef<string | null>(null);
 
   const startStream = useCallback(() => {
-    if (!documentId) return;
+    if (!documentId || startedDocumentRef.current === documentId) return;
+    startedDocumentRef.current = documentId;
     setStatus('connecting');
     setElements([]);
     setTotalElements(0);
@@ -69,13 +71,15 @@ export const useExtractionStream = (documentId: string | undefined, autoStart: b
   }, [documentId]);
 
   useEffect(() => {
-    if (autoStart && documentId && status === 'idle') {
-      startStream();
-    }
+    if (!autoStart || !documentId) return;
+
+    const startTimer = window.setTimeout(startStream, 0);
+
     return () => {
+      window.clearTimeout(startTimer);
       clientRef.current?.disconnect();
     };
-  }, [autoStart, documentId, status, startStream]);
+  }, [autoStart, documentId, startStream]);
 
   return { status, elements, currentPage, totalElements, error, totalChunks, embeddedCount, processingImage, startStream };
 };

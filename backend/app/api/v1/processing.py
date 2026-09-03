@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, HTTPException
-from sse_starlette.sse import EventSourceResponse
+from fastapi.responses import StreamingResponse
 from app.services.extraction.element_processor import ElementProcessor
 from app.repositories.document_repository import DocumentRepository
 from app.state.processing_state import state
@@ -18,22 +18,38 @@ async def start_processing(request: Request, document_id: str):
         from app.state.state_manager import StateManager
         if StateManager.load_state(document_id):
             doc = DocumentRepository.get(document_id)
-            
+
+    file_path = f"data/uploads/{document_id}.pdf"
+
+    # Recover uploads created before document metadata persistence was added.
+    if not doc and os.path.exists(file_path):
+        doc = DocumentRepository.create(Document(
+            id=document_id,
+            filename=f"{document_id}.pdf",
+            status="uploaded",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        ))
+
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     
     # If the document is already processed, bypass the pipeline
     if doc.status == "completed":
-        return EventSourceResponse(ElementProcessor.replay_document_state(document_id))
-    
-    file_path = f"data/uploads/{document_id}.pdf"
+        return StreamingResponse(
+            ElementProcessor.replay_document_state(document_id),
+            media_type="text/event-stream",
+        )
     
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Document file not found")
 
     DocumentRepository.update(document_id, {"status": "processing"})
     
-    return EventSourceResponse(ElementProcessor.process_document(document_id, file_path))
+    return StreamingResponse(
+        ElementProcessor.process_document(document_id, file_path),
+        media_type="text/event-stream",
+    )
 
 @router.get("/{document_id}/chunks")
 async def get_document_chunks(document_id: str):

@@ -33,6 +33,8 @@ class ChunkingService:
 
         chunk_idx = 0
 
+        print("-------- Starting chunking process ---------- ", flush=True)
+
         for el in elements:
             el_type = getattr(el, 'element_type', None)
             el_text = getattr(el, 'text', "")
@@ -167,4 +169,5 @@ class ChunkingService:
                 chunks.append(c)
                 chunk_idx += 1
                 
+        print("-------- Finished chunking process ---------- ", flush=True)
         return chunks

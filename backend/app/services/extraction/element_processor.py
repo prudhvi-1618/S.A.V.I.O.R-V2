@@ -13,20 +13,24 @@ class ElementProcessor:
         try:
             # Yield initial status if needed, but the endpoint handles that.
             # Since unstructured can be blocking, we run it in a thread
+            print(f"------------- Starting extraction for document_id: {document_id}, file_path: {file_path}")
             elements = await asyncio.to_thread(UnstructuredService.extract_elements, file_path, document_id)
+            print(f"------------- Element stream starting: {len(elements)} elements", flush=True)
             
             pages_processed = set()
             for el in elements:
                 ElementRepository.save(el)
                 pages_processed.add(el.page_number)
-                
+                print(f"-------- Sending element_extracted: {el.element_id}, type: {el.element_type} ---------- ",flush=True)
                 yield SSEEventBuilder.format_event(
                     "element_extracted",
                     {
                         "element_id": el.element_id,
                         "element_type": el.element_type,
                         "text": el.text,
-                        "page_number": el.page_number
+                        "page_number": el.page_number,
+                        "coordinates": el.coordinates.model_dump() if el.coordinates else None,
+                        "metadata": el.metadata
                     }
                 )
                 await asyncio.sleep(0.01) # Small delay to simulate streaming if it's too fast
@@ -54,6 +58,7 @@ class ElementProcessor:
             yield SSEEventBuilder.format_event("chunking_complete", {
                 "total_chunks": len(chunks)
             })
+            print("-------- Starting embedding process ---------- ", flush=True)
 
             # Step: Embedding
             async for event in EmbeddingService.embed_all_chunks(chunks, state):
@@ -90,7 +95,9 @@ class ElementProcessor:
                     "element_id": el.element_id,
                     "element_type": el.element_type,
                     "text": el.text,
-                    "page_number": el.page_number
+                        "page_number": el.page_number,
+                        "coordinates": el.coordinates.model_dump() if el.coordinates else None,
+                        "metadata": el.metadata
                 }
             )
             await asyncio.sleep(0.005) # Prevent overloading client

@@ -3,6 +3,7 @@ from fastapi.responses import FileResponse
 from app.repositories.element_repository import ElementRepository
 from app.repositories.document_repository import DocumentRepository
 from app.schemas.document import Document
+from app.state.state_manager import StateManager
 from collections import defaultdict
 import os
 import uuid
@@ -34,6 +35,7 @@ async def upload_document(file: UploadFile = File(...)):
             updated_at=datetime.now()
         )
         DocumentRepository.create(doc)
+        StateManager.save_state(document_id)
         
         return {"document_id": document_id, "filename": file.filename}
     except Exception as e:

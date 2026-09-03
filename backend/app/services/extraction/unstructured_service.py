@@ -16,7 +16,7 @@ class UnstructuredService:
         strategies = ["hi_res", "fast"]
         raw_elements = None
         last_error = None
-        
+
         for strategy in strategies:
             try:
                 raw_elements = partition_pdf(
@@ -35,7 +35,6 @@ class UnstructuredService:
                 else:
                     # Last strategy failed, raise the error
                     raise RuntimeError(f"Extraction failed with all strategies. Last error: {str(e)}") from e
-        
         if raw_elements is None:
             raise RuntimeError(f"Extraction failed: {str(last_error)}")
 
@@ -91,5 +90,5 @@ class UnstructuredService:
                 metadata=extra_metadata
             )
             extracted_elements.append(el)
-
+        print(f"--------- {len(extracted_elements)} elements extracted -----")
         return extracted_elements

@@ -34,7 +34,7 @@ class EmbeddingService:
             batch_chunks = []
             batch_vectors = []
             batch_size = settings.EMBEDDING_BATCH_SIZE
-            
+            print(f"-------- Starting embedding process for {len(chunks)} chunks with batch size {batch_size} ---------- ", flush=True)
             for i, chunk in enumerate(chunks):
                 text_to_embed = ""
                 if chunk.chunk_type == "image":
@@ -66,9 +66,16 @@ class EmbeddingService:
                     vector = seen_hashes[content_hash]
                 else:
                     # Generate embedding
+                    logger.info(
+                        "Embedding chunk %d/%d (%s)",
+                        i + 1,
+                        len(chunks),
+                        chunk.chunk_id,
+                    )
                     vector = await asyncio.to_thread(
                         GeminiService.generate_embedding, text_to_embed
                     )
+                    logger.info("Embedding completed for chunk %d/%d", i + 1, len(chunks))
                     if content_hash:
                         seen_hashes[content_hash] = vector
 
@@ -80,7 +87,9 @@ class EmbeddingService:
                 
                 # Flush batch if full
                 if len(batch_chunks) >= batch_size:
+                    logger.info("Upserting %d embedded chunks to Qdrant", len(batch_chunks))
                     await asyncio.to_thread(QdrantService.upsert_chunks, batch_chunks, batch_vectors)
+                    logger.info("Qdrant upsert completed for %d chunks", len(batch_chunks))
                     batch_chunks = []
                     batch_vectors = []
                 
@@ -102,7 +111,9 @@ class EmbeddingService:
 
             # Flush remaining batch
             if batch_chunks:
+                logger.info("Upserting final %d embedded chunks to Qdrant", len(batch_chunks))
                 await asyncio.to_thread(QdrantService.upsert_chunks, batch_chunks, batch_vectors)
+                logger.info("Final Qdrant upsert completed")
 
             state.embedding_status = "completed"
             yield SSEEventBuilder.format_event("embedding_complete", {
@@ -110,6 +121,8 @@ class EmbeddingService:
                 "total_vectors": len(chunks),
                 "collection": "savior_documents"
             })
+
+            print(f"-------- Finished embedding process for {len(chunks)} chunks ---------- ", flush=True)
             
         except Exception as e:
             state.embedding_status = "failed"
@@ -117,3 +130,4 @@ class EmbeddingService:
             yield SSEEventBuilder.format_event("embedding_error", {
                 "error": str(e)
             })
+            raise

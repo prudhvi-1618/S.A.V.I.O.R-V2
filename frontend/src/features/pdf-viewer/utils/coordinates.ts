@@ -18,8 +18,8 @@ export function transformCoordinates(
 
   for (const [x, y] of points) {
     const canvasX = x * scaleX;
-    // Y-axis flip
-    const canvasY = renderedHeight - (y * scaleY);
+    // Unstructured's PixelSpace and the PDF canvas both use a top-left origin.
+    const canvasY = y * scaleY;
     
     minX = Math.min(minX, canvasX);
     minY = Math.min(minY, canvasY);

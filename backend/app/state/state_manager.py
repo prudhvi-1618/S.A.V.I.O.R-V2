@@ -34,8 +34,13 @@ class StateManager:
             "embedded_chunks": state.embedded_chunks
         }
 
-        with open(cls._get_file_path(document_id), 'w', encoding='utf-8') as f:
+        file_path = cls._get_file_path(document_id)
+        temp_file_path = f"{file_path}.tmp"
+        with open(temp_file_path, 'w', encoding='utf-8') as f:
             json.dump(data, f)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_file_path, file_path)
 
     @classmethod
     def load_state(cls, document_id: str) -> bool:

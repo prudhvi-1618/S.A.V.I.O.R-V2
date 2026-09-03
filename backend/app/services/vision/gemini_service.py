@@ -4,11 +4,16 @@ from typing import List
 from google import genai
 from google.genai import types
 from app.core.config import settings
+from app.core.logging import get_logger
 
+logger = get_logger(__name__)
 
 
 def get_client() -> genai.Client:
-    return genai.Client(api_key=settings.GEMINI_API_KEY)
+    return genai.Client(
+        api_key=settings.GEMINI_API_KEY,
+        http_options=types.HttpOptions(timeout=settings.GEMINI_TIMEOUT_MS),
+    )
 
 @dataclass
 class ImageDescription:
@@ -97,12 +102,15 @@ Respond in this exact JSON format:
             result = client.models.embed_content(
                 model=settings.EMBEDDING_MODEL,
                 contents=text,
-                config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT"),
+                config=types.EmbedContentConfig(
+                    task_type="RETRIEVAL_DOCUMENT",
+                    output_dimensionality=settings.EMBEDDING_DIMENSION,
+                ),
             )
             return list(result.embeddings[0].values)
         except Exception as e:
-            print(f"Error generating embedding: {e}")
-            return [0.0] * settings.EMBEDDING_DIMENSION
+            logger.error("Embedding request failed: %s", e, exc_info=True)
+            raise RuntimeError(f"Gemini embedding request failed: {e}") from e
 
     @staticmethod
     def generate_query_embedding(text: str) -> List[float]:
@@ -111,7 +119,10 @@ Respond in this exact JSON format:
             result = client.models.embed_content(
                 model=settings.EMBEDDING_MODEL,
                 contents=text,
-                config=types.EmbedContentConfig(task_type="RETRIEVAL_QUERY"),
+                config=types.EmbedContentConfig(
+                    task_type="RETRIEVAL_QUERY",
+                    output_dimensionality=settings.EMBEDDING_DIMENSION,
+                ),
             )
             return list(result.embeddings[0].values)
         except Exception as e:
