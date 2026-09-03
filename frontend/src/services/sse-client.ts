@@ -21,7 +21,11 @@ export class SSEClient {
         try {
           const data = JSON.parse(msg.data);
           onEvent(msg.event, data);
-          if (msg.event === 'processing_complete' || msg.event === 'processing_error') {
+          if (
+            msg.event === 'embedding_complete' ||
+            msg.event === 'processing_error' ||
+            msg.event === 'embedding_error'
+          ) {
             this.disconnect();
             onComplete();
           }

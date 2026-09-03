@@ -106,13 +106,23 @@ class QdrantService:
         limit: int = 5,
         score_threshold: float = 0.3
     ) -> List[SearchResult]:
-        results = cls.client.search(
-            collection_name=settings.QDRANT_COLLECTION,
-            query_vector=query_vector,
-            limit=limit,
-            score_threshold=score_threshold,
-            with_payload=True
-        )
+        if hasattr(cls.client, "search"):
+            results = cls.client.search(
+                collection_name=settings.QDRANT_COLLECTION,
+                query_vector=query_vector,
+                limit=limit,
+                score_threshold=score_threshold,
+                with_payload=True
+            )
+        else:
+            response = cls.client.query_points(
+                collection_name=settings.QDRANT_COLLECTION,
+                query=query_vector,
+                limit=limit,
+                score_threshold=score_threshold,
+                with_payload=True
+            )
+            results = response.points
 
         search_results = []
         for r in results:

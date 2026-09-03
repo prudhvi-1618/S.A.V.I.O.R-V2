@@ -8,13 +8,15 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 class Settings:
     PROJECT_NAME: str = "S.A.V.I.O.R"
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    HF_TOKEN: str = os.getenv("HF_TOKEN", "")
     QDRANT_URL: str = os.getenv("QDRANT_URL", "http://localhost:6333")
     QDRANT_COLLECTION: str = os.getenv("QDRANT_COLLECTION", "savior_documents")
-    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "models/gemini-embedding-001")
-    VISION_MODEL: str = os.getenv("VISION_MODEL", "gemini-1.5-flash")
-    CHAT_MODEL: str = os.getenv("CHAT_MODEL", "gemini-1.5-flash")
+    EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "huggingface_local").lower()
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
+    VISION_MODEL: str = os.getenv("VISION_MODEL", "gemini-2.5-flash")
+    CHAT_MODEL: str = os.getenv("CHAT_MODEL", "gemini-2.5-flash")
     GEMINI_TIMEOUT_MS: int = int(os.getenv("GEMINI_TIMEOUT_MS", "30000"))
-    EMBEDDING_DIMENSION: int = 768
+    EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "384"))
     
     # Retrieval Configuration
     RETRIEVAL_TOP_K: int = int(os.getenv("RETRIEVAL_TOP_K", "15"))

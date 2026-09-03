@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { SSEClient } from '../../../services/sse-client';
 import type { ExtractedElement, ExtractionStatus } from '../types/extraction.types';
 
+const activeStartRequests = new Set<string>();
+
 export const useExtractionStream = (documentId: string | undefined, autoStart: boolean = false) => {
   const [status, setStatus] = useState<ExtractionStatus>('idle');
   const [elements, setElements] = useState<ExtractedElement[]>([]);
@@ -15,9 +17,12 @@ export const useExtractionStream = (documentId: string | undefined, autoStart: b
 
   const clientRef = useRef<SSEClient | null>(null);
   const startedDocumentRef = useRef<string | null>(null);
+  const statusTimerRef = useRef<number | null>(null);
+   const statusRequestRef = useRef<AbortController | null>(null);
 
   const startStream = useCallback(() => {
-    if (!documentId || startedDocumentRef.current === documentId) return;
+    if (!documentId || startedDocumentRef.current === documentId || activeStartRequests.has(documentId)) return;
+    activeStartRequests.add(documentId);
     startedDocumentRef.current = documentId;
     setStatus('connecting');
     setElements([]);
@@ -27,12 +32,13 @@ export const useExtractionStream = (documentId: string | undefined, autoStart: b
     setProcessingImage(null);
     setError(null);
 
-    const client = new SSEClient();
-    clientRef.current = client;
-
-    client.connect(
-      `/api/v1/processing/${documentId}/start`,
-      (event, data) => {
+    const connectToProcessingStream = () => {
+      if (statusRequestRef.current?.signal.aborted) return;
+      const client = new SSEClient();
+      clientRef.current = client;
+      client.connect(
+        `/api/v1/processing/${documentId}/start`,
+        (event, data) => {
         if (event === 'element_extracted') {
           setStatus('processing');
           setElements((prev) => [...prev, data]);
@@ -55,19 +61,48 @@ export const useExtractionStream = (documentId: string | undefined, autoStart: b
           setProcessingImage(null);
         } else if (event === 'embedding_complete') {
           setStatus('completed');
+          activeStartRequests.delete(documentId);
         } else if (event === 'processing_error' || event === 'embedding_error') {
           setStatus('error');
           setError(data.error);
+          activeStartRequests.delete(documentId);
         }
       },
-      (err) => {
-        setStatus('error');
-        setError(err.message || 'Connection error');
-      },
-      () => {
-        // Handle close if needed
-      }
-    );
+        (err) => {
+          setStatus('error');
+          setError(err.message || 'Connection error');
+        activeStartRequests.delete(documentId);
+        },
+        () => {
+          // Handle close if needed
+        }
+      );
+    };
+
+    const statusRequest = new AbortController();
+    statusRequestRef.current?.abort();
+    statusRequestRef.current = statusRequest;
+
+    fetch(`/api/v1/processing/${documentId}/status`, { signal: statusRequest.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Status request failed: ${response.status}`);
+        return response.json();
+      })
+      .then(({ status: documentStatus }) => {
+        if (statusRequest.signal.aborted) return;
+        if (documentStatus === 'processing' || documentStatus === 'extracted') {
+          setStatus('processing');
+          activeStartRequests.delete(documentId);
+          startedDocumentRef.current = null;
+          statusTimerRef.current = window.setTimeout(startStream, 2000);
+          return;
+        }
+        connectToProcessingStream();
+      })
+      .catch((error) => {
+        if (error.name === 'AbortError' || statusRequest.signal.aborted) return;
+        connectToProcessingStream();
+      });
   }, [documentId]);
 
   useEffect(() => {
@@ -77,6 +112,11 @@ export const useExtractionStream = (documentId: string | undefined, autoStart: b
 
     return () => {
       window.clearTimeout(startTimer);
+      if (statusTimerRef.current !== null) {
+        window.clearTimeout(statusTimerRef.current);
+      }
+      statusRequestRef.current?.abort();
+      activeStartRequests.delete(documentId);
       clientRef.current?.disconnect();
     };
   }, [autoStart, documentId, startStream]);

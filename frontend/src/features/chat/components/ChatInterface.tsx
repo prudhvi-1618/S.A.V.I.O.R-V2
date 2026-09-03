@@ -21,10 +21,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ documentId, onSour
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isStreaming, isRetrieving]);
 
-  // Fetch the latest trace if retrieval finishes
+  // Fetch the latest trace after the answer stream finishes.
   useEffect(() => {
-    if (!isRetrieving && isStreaming) {
-      // Just started streaming answer, meaning retrieval is done
+    if (!isRetrieving && !isStreaming && messages.length > 0 && !error) {
       fetch(`/api/v1/chat/${documentId}/trace`)
         .then(res => res.ok ? res.json() : null)
         .then(data => {
@@ -32,7 +31,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ documentId, onSour
         })
         .catch(err => console.error("Could not load trace", err));
     }
-  }, [isRetrieving, isStreaming, documentId]);
+  }, [isRetrieving, isStreaming, messages.length, error, documentId]);
 
   return (
     <div className="flex flex-col h-full bg-white relative">

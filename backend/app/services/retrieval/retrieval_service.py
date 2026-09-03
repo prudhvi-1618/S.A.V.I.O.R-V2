@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List, Set
 import asyncio
 
-from app.services.vision.gemini_service import GeminiService
+from app.services.embeddings.embedding_provider import EmbeddingProvider
 from app.services.embeddings.qdrant_service import QdrantService
 from app.services.retrieval.query_processor import QueryProcessor
 from app.services.retrieval.reranker import HeuristicReranker
@@ -40,7 +40,7 @@ class RetrievalService:
         loop = asyncio.get_event_loop()
         query_vector = await loop.run_in_executor(
             None,
-            GeminiService.generate_query_embedding,
+            EmbeddingProvider.generate_query_embedding,
             normalized_query
         )
 

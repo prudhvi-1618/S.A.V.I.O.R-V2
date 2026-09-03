@@ -31,7 +31,8 @@ class StateManager:
             "elements": [el.model_dump(mode='json') for el in elements],
             "chunks": [asdict(c) for c in chunks],
             "total_chunks": state.total_chunks,
-            "embedded_chunks": state.embedded_chunks
+            "embedded_chunks": state.embedded_chunks,
+            "embedding_status": state.embedding_status,
         }
 
         file_path = cls._get_file_path(document_id)
@@ -72,6 +73,12 @@ class StateManager:
             
             state.total_chunks = data.get("total_chunks", 0)
             state.embedded_chunks = data.get("embedded_chunks", 0)
+            state.embedding_status = data.get(
+                "embedding_status",
+                "completed"
+                if state.total_chunks > 0 and state.embedded_chunks == state.total_chunks
+                else "idle",
+            )
             
             return True
         except Exception as e:

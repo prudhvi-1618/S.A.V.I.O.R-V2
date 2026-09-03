@@ -9,15 +9,17 @@ import os
 
 router = APIRouter(prefix="/processing", tags=["processing"])
 
-@router.post("/{document_id}/start")
-async def start_processing(request: Request, document_id: str):
+def _load_document(document_id: str):
     doc = DocumentRepository.get(document_id)
-    
-    # Try to load state if not in memory
     if not doc:
         from app.state.state_manager import StateManager
         if StateManager.load_state(document_id):
             doc = DocumentRepository.get(document_id)
+    return doc
+
+@router.post("/{document_id}/start")
+async def start_processing(request: Request, document_id: str):
+    doc = _load_document(document_id)
 
     file_path = f"data/uploads/{document_id}.pdf"
 
@@ -40,6 +42,12 @@ async def start_processing(request: Request, document_id: str):
             ElementProcessor.replay_document_state(document_id),
             media_type="text/event-stream",
         )
+
+    if doc.status in {"processing", "extracted"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Document processing is already in progress",
+        )
     
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Document file not found")
@@ -50,6 +58,13 @@ async def start_processing(request: Request, document_id: str):
         ElementProcessor.process_document(document_id, file_path),
         media_type="text/event-stream",
     )
+
+@router.get("/{document_id}/status")
+async def get_processing_status(document_id: str):
+    doc = _load_document(document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return {"document_id": document_id, "status": doc.status}
 
 @router.get("/{document_id}/chunks")
 async def get_document_chunks(document_id: str):

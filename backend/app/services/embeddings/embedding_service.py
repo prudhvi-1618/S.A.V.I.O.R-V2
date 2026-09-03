@@ -4,6 +4,7 @@ from uuid import uuid4
 from app.state.processing_state import ChunkData, ProcessingState
 from app.core.sse import SSEEventBuilder
 from app.services.vision.gemini_service import GeminiService
+from app.services.embeddings.embedding_provider import EmbeddingProvider
 from app.services.embeddings.qdrant_service import QdrantService
 
 import hashlib
@@ -73,7 +74,7 @@ class EmbeddingService:
                         chunk.chunk_id,
                     )
                     vector = await asyncio.to_thread(
-                        GeminiService.generate_embedding, text_to_embed
+                        EmbeddingProvider.generate_document_embedding, text_to_embed
                     )
                     logger.info("Embedding completed for chunk %d/%d", i + 1, len(chunks))
                     if content_hash:
